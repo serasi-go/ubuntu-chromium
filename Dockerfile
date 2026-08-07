@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Instal dependensi OS, XFCE Desktop, dan Java OpenJDK
+# 1. Instal semua paket dasar visual, Chromium, dan Java
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -29,23 +29,20 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-# 3. Jalankan Chromium Tanpa Sandbox (Wajib agar bisa dibuka di container)
+# 3. Jalankan Chromium Tanpa Sandbox
 RUN echo 'exec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
-# 4. Salin kode repositori dan ubah kepemilikan folder ke user jovyan
+# 4. Salin kode repositori dan kelola permission folder
 COPY . ${HOME}
 USER root
 RUN chown -R ${NB_UID} ${HOME}
 
-# 5. Kembali ke user non-root untuk instalasi paket python
+# 5. Kembali ke user jovyan untuk proses Jupyter
 USER ${NB_USER}
 WORKDIR ${HOME}
-
-# 6. Daftarkan folder binary lokal ke dalam PATH sistem
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# 7. Instal Jupyter dan Ekstensi Proxy Resmi Binder
-# (Paket jupyter-remote-desktop-proxy ini akan mengurus noVNC secara otomatis dan aman)
+# 6. Instal pustaka inti Jupyter Hub
 RUN pip3 install --no-cache-dir jupyterlab notebook
 RUN pip3 install --no-cache-dir jupyter-server-proxy jupyter-remote-desktop-proxy
