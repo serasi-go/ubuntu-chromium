@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Tambahkan dependensi websockify langsung lewat apt agar binary/library C-nya stabil
+# 1. Instal semua dependensi OS
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:xtradeb/apps -y && \
     apt-get update && apt-get install -y \
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y software-properties-common && \
     websockify \
     && rm -rf /var/lib/apt/lists/*
 
-# Konfigurasi User khusus Binder (UID wajib 1000)
+# 2. Konfigurasi User khusus Binder (UID wajib 1000)
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 ENV USER ${NB_USER}
@@ -34,22 +34,22 @@ RUN adduser --disabled-password \
 
 RUN echo "$NB_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook
 
-# Trik Agar Chromium bisa dibuka di dalam container (Tanpa Sandbox)
+# 3. Trik Agar Chromium bisa dibuka Tanpa Sandbox
 RUN echo 'exec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
-# 2. Salin isi repositori dan WAJIB pastikan permission root dialihkan ke user jovyan
+# 4. Salin isi repositori dan kelola permission
 COPY . ${HOME}
 USER root
 RUN chown -R ${NB_UID} ${HOME}
 
-# 3. Pindah kembali ke user jovyan untuk proses instalasi pip
+# 5. Pindah ke user jovyan untuk eksekusi pip
 USER ${NB_USER}
 WORKDIR ${HOME}
 
-# 4. Tambahkan path Python lokal ke dalam Environment Variable Binder
+# 6. WAJIB: Daftarkan Path python lokal ke Environment Variable Binder
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# 5. Instal paket Jupyter dan komponen proxy
+# 7. Instal paket Jupyter dan Extension Desktop Proxy resmi
 RUN pip3 install --no-cache-dir jupyterlab notebook
-RUN pip3 install --no-cache-dir jupyter-remote-desktop-proxy jupyter-server-proxy
+RUN pip3 install --no-cache-dir jupyter-server-proxy jupyter-remote-desktop-proxy
