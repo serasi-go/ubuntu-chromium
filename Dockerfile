@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Instal GUI Desktop, Java, dan dependensi sistem dasar
+# 1. Instal dependensi OS, XFCE Desktop, dan Java OpenJDK
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -29,7 +29,7 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-# 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam Docker)
+# 3. Jalankan Chromium Tanpa Sandbox (Wajib agar bisa dibuka di container)
 RUN echo 'exec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
@@ -38,21 +38,14 @@ COPY . ${HOME}
 USER root
 RUN chown -R ${NB_UID} ${HOME}
 
-# 5. Kembali ke user non-root untuk instalasi paket python dan noVNC
+# 5. Kembali ke user non-root untuk instalasi paket python
 USER ${NB_USER}
 WORKDIR ${HOME}
 
-# 6. Unduh noVNC & Websockify menggunakan Trik Base64 Anda (Disesuaikan untuk Binder)
-RUN mkdir -p ${HOME}/novnc ${HOME}/novnc/utils/websockify \
-    && URL_NOVNC=$(echo "aHR0cHM6Ly9jb2RlbG9hZC5naXRodWIuY29tL25vVk5DL25vVk5DL3Rhci5nei9yZWZzL3RhZ3MvdjEuNS4w" | base64 -d) \
-    && URL_WEBSOCKIFY=$(echo "aHR0cHM6Ly9jb2RlbG9hZC5naXRodWIuY29tL25vVk5DL3dlYnNvY2tpZnkvdGFyLmd6L3JlZnMvdGFncy92MC4xMi4w" | base64 -d) \
-    && curl -sL "$URL_NOVNC" | tar -xzf - -C ${HOME}/novnc --strip-components=1 \
-    && curl -sL "$URL_WEBSOCKIFY" | tar -xzf - -C ${HOME}/novnc/utils/websockify --strip-components=1 \
-    && cp ${HOME}/novnc/vnc.html ${HOME}/novnc/index.html
-
-# 7. Daftarkan folder binary lokal ke dalam PATH sistem
+# 6. Daftarkan folder binary lokal ke dalam PATH sistem
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# 8. Instal Jupyter dan Ekstensi Proxy Resmi Binder
+# 7. Instal Jupyter dan Ekstensi Proxy Resmi Binder
+# (Paket jupyter-remote-desktop-proxy ini akan mengurus noVNC secara otomatis dan aman)
 RUN pip3 install --no-cache-dir jupyterlab notebook
 RUN pip3 install --no-cache-dir jupyter-server-proxy jupyter-remote-desktop-proxy
