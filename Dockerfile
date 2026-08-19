@@ -1,8 +1,10 @@
 FROM ubuntu:22.04
 
+USER root
+
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Instal Openbox (Desktop minimalis penangkal crash) + Java + Chromium
+# 1. Instal Openbox, VNC, NoVNC, Java, dan Chromium
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -13,11 +15,14 @@ RUN apt-get update && apt-get install -y \
     openbox \
     xterm \
     tigervnc-standalone-server \
+    novnc \
+    websockify \
     dbus-x11 \
     chromium-browser \
     openjdk-17-jdk \
     net-tools \
-    && rm -rf /var/lib/apt/lists/*
+    xvfb \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 2. Atur konfigurasi User khusus Binder (UID wajib 1000)
 ARG NB_USER=jovyan
@@ -30,25 +35,23 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-# 3. Konfigurasi inisialisasi Desktop Openbox yang anti-disconnect
+# 3. Konfigurasi inisialisasi Desktop Openbox
 RUN mkdir -p ${HOME}/.vnc && \
     echo "#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nopenbox-session &\nxterm -geometry 80x24+10+10 &" > ${HOME}/.vnc/xstartup && \
     chmod +x ${HOME}/.vnc/xstartup
 
-# 4. Jalankan Chromium Tanpa Sandbox
+# 4. Jalankan Chromium Tanpa Sandbox secara default
 RUN echo 'exec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
-# 5. Salin kode repositori dan kelola permission folder
-COPY . ${HOME}
-USER root
-RUN chown -R ${NB_UID} ${HOME}
+# 5. Instal pustaka inti Jupyter Hub & Proxy Desktop Resmi (Dijalankan sebelum COPY agar aman)
+RUN pip3 install --no-cache-dir jupyterlab notebook jupyter-server-proxy jupyter-remote-desktop-proxy
 
-# 6. Kembali ke user jovyan untuk proses Jupyter
+# 6. Salin kode repositori dan kelola permission folder secara menyeluruh
+COPY . ${HOME}
+RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
+
+# 7. Kembali ke user jovyan untuk proses Jupyter
 USER ${NB_USER}
 WORKDIR ${HOME}
 ENV PATH="${HOME}/.local/bin:${PATH}"
-
-# 7. Instal pustaka inti Jupyter Hub & Proxy Desktop Resmi
-RUN pip3 install --no-cache-dir jupyterlab notebook
-RUN pip3 install --no-cache-dir jupyter-server-proxy jupyter-remote-desktop-proxy
