@@ -4,7 +4,7 @@ USER root
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Instal Openbox, VNC, NoVNC, Java, dan Chromium
+# 1. Instal Xvfb, Openbox (GUI Standar), Java, dan Chromium
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -13,10 +13,6 @@ RUN apt-get update && apt-get install -y \
     git \
     sudo \
     openbox \
-    xterm \
-    tigervnc-standalone-server \
-    novnc \
-    websockify \
     dbus-x11 \
     chromium-browser \
     openjdk-17-jdk \
@@ -35,23 +31,22 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-# 3. Konfigurasi inisialisasi Desktop Openbox
-RUN mkdir -p ${HOME}/.vnc && \
-    echo "#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nopenbox-session &\nxterm -geometry 80x24+10+10 &" > ${HOME}/.vnc/xstartup && \
-    chmod +x ${HOME}/.vnc/xstartup
-
-# 4. Jalankan Chromium Tanpa Sandbox secara default
+# 3. Jalankan Chromium Tanpa Sandbox secara otomatis saat dipanggil
 RUN echo 'exec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
-# 5. Instal pustaka inti Jupyter Hub & Proxy Desktop Resmi (Dijalankan sebelum COPY agar aman)
+# 4. Instal pustaka inti Jupyter Hub & Proxy Desktop Resmi
 RUN pip3 install --no-cache-dir jupyterlab notebook jupyter-server-proxy jupyter-remote-desktop-proxy
 
-# 6. Salin kode repositori dan kelola permission folder secara menyeluruh
+# 5. Salin kode repositori dan kelola permission folder secara menyeluruh
 COPY . ${HOME}
 RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
 
-# 7. Kembali ke user jovyan untuk proses Jupyter
+# 6. Jalankan environment sebagai user jovyan
 USER ${NB_USER}
 WORKDIR ${HOME}
 ENV PATH="${HOME}/.local/bin:${PATH}"
+
+ 
+
+#chromium-browser --no-sandbox
