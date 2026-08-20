@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Instal GUI Desktop, Java, dependensi, dan perbaikan untuk Ubuntu 22.04 (PEP 668)
+# 1. Instal GUI Desktop, Java, htop, dan dependensi sistem dasar
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -17,13 +17,14 @@ RUN apt-get update && apt-get install -y \
     chromium-browser \
     openjdk-17-jdk \
     net-tools \
+    htop \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Atur konfigurasi User khusus Binder (UID wajib 1000)
+# 2. Atur konfigurasi User khusus Binder (UID wajib 1000 - Menggunakan format key=value)
 ARG NB_USER=jovyan
 ARG NB_UID=1000
-ENV USER ${NB_USER}
-ENV HOME /home/${NB_USER}
+ENV USER=${NB_USER}
+ENV HOME=/home/${NB_USER}
 
 RUN adduser --disabled-password \
     --gecos "Default user" \
@@ -45,12 +46,11 @@ WORKDIR ${HOME}
 # 6. Daftarkan folder binary lokal ke dalam PATH sistem
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# 7. Instal Jupyter & Ekstensi Proxy Resmi Binder menggunakan `--break-system-packages`
-# Di Ubuntu 22.04+, pip memblokir instalasi global di luar venv secara default
-RUN pip3 install --no-cache-dir --break-system-packages jupyterlab notebook jupyter-server-proxy
+# 7. Instal Jupyter & Ekstensi Proxy Resmi Binder
+RUN pip3 install --no-cache-dir jupyterlab notebook jupyter-server-proxy
 
 # 8. Instal Desktop Proxy secara benar agar skrip startup otomatis terkonfigurasi
-RUN pip3 install --no-cache-dir --break-system-packages git+https://github.com
+RUN pip3 install --no-cache-dir git+https://github.com
 
 # 9. Unduh noVNC & Websockify menggunakan Trik Base64 Anda (Opsional jika ingin fallback manual)
 RUN mkdir -p ${HOME}/novnc ${HOME}/novnc/utils/websockify \
