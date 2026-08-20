@@ -1,15 +1,10 @@
-FROM ubuntu:22.04
+# 1. Gunakan Base Image resmi Jupyter (Sudah include Ubuntu, Python, Bash, dan JupyterLab)
+FROM quay.io/jupyter/base-notebook:latest
 
-ENV DEBIAN_FRONTEND=noninteractive
+USER root
 
-# 1. Instal GUI Desktop, Java, htop, dan dependensi sistem dasar
+# 2. Instal XFCE Desktop, VNC, Java, htop, dan perkakas jaringan (curl & wget)
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    curl \
-    git \
-    sudo \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
@@ -18,47 +13,29 @@ RUN apt-get update && apt-get install -y \
     openjdk-17-jdk \
     net-tools \
     htop \
+    curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Atur konfigurasi User khusus Binder (UID wajib 1000 - Menggunakan format key=value)
-ARG NB_USER=jovyan
-ARG NB_UID=1000
-ENV USER=${NB_USER}
-ENV HOME=/home/${NB_USER}
-
-RUN adduser --disabled-password \
-    --gecos "Default user" \
-    --uid ${NB_UID} \
-    ${NB_USER}
-
-# 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam Docker)
+# 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam kontainer Docker)
 RUN echo '#!/bin/sh\nexec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium
 
-# 4. Salin kode repositori dan ubah kepemilikan folder ke user jovyan
+# 4. Salin kode repositori Anda dan pastikan kepemilikannya dipegang oleh user jovyan
 COPY . ${HOME}
 RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
 
-# 5. Beralih ke user non-root untuk langkah berikutnya
+# 5. Kembali ke user non-root bawaan Jupyter (jovyan)
 USER ${NB_USER}
 WORKDIR ${HOME}
 
-# 6. Daftarkan folder binary lokal ke dalam PATH sistem
-ENV PATH="${HOME}/.local/bin:${PATH}"
+# 6. Jalankan instalasi Ekstensi Proxy Desktop Binder langsung ke lingkungan Python bawaan
+RUN pip install --no-cache-dir jupyter-server-proxy git+https://github.com
 
-# 7. Instal Jupyter & Ekstensi Proxy Resmi Binder
-RUN pip3 install --no-cache-dir jupyterlab notebook jupyter-server-proxy
-
-# 8. Instal Desktop Proxy secara benar agar skrip startup otomatis terkonfigurasi
-RUN pip3 install --no-cache-dir git+https://github.com
-
-# 9. Unduh noVNC & Websockify menggunakan Trik Base64 Anda (Opsional jika ingin fallback manual)
+# 7. Unduh noVNC & Websockify menggunakan Trik Base64 Anda (Aman menggunakan curl yang baru diinstal)
 RUN mkdir -p ${HOME}/novnc ${HOME}/novnc/utils/websockify \
     && URL_NOVNC=$(echo "aHR0cHM6Ly9jb2RlbG9hZC5naXRodWIuY29tL25vVk5DL25vVk5DL3Rhci5nei9yZWZzL3RhZ3MvdjEuNS4w" | base64 -d) \
     && URL_WEBSOCKIFY=$(echo "aHR0cHM6Ly9jb2RlbG9hZC5naXRodWIuY29tL25vVk5DL3dlYnNvY2tpZnkvdGFyLmd6L3JlZnMvdGFncy92MC4xMi4w" | base64 -d) \
     && curl -sL "$URL_NOVNC" | tar -xzf - -C ${HOME}/novnc --strip-components=1 \
     && curl -sL "$URL_WEBSOCKIFY" | tar -xzf - -C ${HOME}/novnc/utils/websockify --strip-components=1 \
     && cp ${HOME}/novnc/vnc.html ${HOME}/novnc/index.html
-
-# 10. Perintah wajib MyBinder untuk mengeksekusi server Jupyter
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser"]
