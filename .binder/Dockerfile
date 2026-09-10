@@ -15,7 +15,13 @@ RUN apt-get update && apt-get install -y \
     htop \
     curl \
     wget \
+    nodejs \
+    ffmpeg \
+    screen \
     && rm -rf /var/lib/apt/lists/*
+
+
+RUN curl -fsSL https://tailscale.com/install.sh -o install-tailscale.sh && sh install-tailscale.sh    
 
 # 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam kontainer Docker)
 RUN echo '#!/bin/sh\nexec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
