@@ -5,6 +5,7 @@ USER root
 
 # 2. Instal XFCE Desktop, VNC, Java, htop, dan perkakas jaringan (curl & wget)
 RUN apt-get update && apt-get install -y \
+    sudo \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
