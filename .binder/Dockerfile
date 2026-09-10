@@ -23,9 +23,12 @@ RUN apt-get update && apt-get install -y \
 
 RUN curl -fsSL https://tailscale.com/install.sh -o install-tailscale.sh && sh install-tailscale.sh    
 
+# Pasang git terlebih dahulu sebelum melakukan instalasi dari repositori git
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
 # 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam kontainer Docker)
 RUN echo '#!/bin/sh\nexec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
-    chmod +x /usr/local/bin/chromium
+    chmod +x /usr/local/bin/chromium   
 
 # 4. Salin kode repositori Anda dan pastikan kepemilikannya dipegang oleh user jovyan
 COPY . ${HOME}
@@ -36,10 +39,7 @@ USER ${NB_USER}
 WORKDIR ${HOME}
 
 
-# Pasang git terlebih dahulu sebelum melakukan instalasi dari repositori git
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
-USER ${NB_USER}
+
 
 # 6. Jalankan instalasi Ekstensi Proxy Desktop Binder langsung ke lingkungan Python bawaan
 RUN pip install --no-cache-dir jupyter-server-proxy git+https://github.com
