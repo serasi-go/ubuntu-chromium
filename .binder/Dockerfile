@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 # 3. Jalankan Chromium Tanpa Sandbox (Wajib di dalam kontainer Docker)
 RUN echo '#!/bin/sh\nexec chromium-browser --no-sandbox "$@"' > /usr/local/bin/chromium && \
     chmod +x /usr/local/bin/chromium   
-
+    
 # 4. Salin kode repositori Anda dan pastikan kepemilikannya dipegang oleh user jovyan
 COPY . ${HOME}
 RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
@@ -37,8 +37,6 @@ RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
 # 5. Kembali ke user non-root bawaan Jupyter (jovyan)
 USER ${NB_USER}
 WORKDIR ${HOME}
-
-
 
 
 # 6. Jalankan instalasi Ekstensi Proxy Desktop Binder langsung ke lingkungan Python bawaan
