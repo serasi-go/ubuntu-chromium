@@ -35,6 +35,12 @@ RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
 USER ${NB_USER}
 WORKDIR ${HOME}
 
+
+# Pasang git terlebih dahulu sebelum melakukan instalasi dari repositori git
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+USER ${NB_USER}
+
 # 6. Jalankan instalasi Ekstensi Proxy Desktop Binder langsung ke lingkungan Python bawaan
 RUN pip install --no-cache-dir jupyter-server-proxy git+https://github.com
 
